@@ -15,7 +15,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -40,13 +39,6 @@ import {
   CardFooter,
 } from "@/components/ui/card"
 
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
 import { useEffect, useState } from "react";
 
 type User = {
@@ -65,13 +57,43 @@ const formSchema = z.object({
   email: z.string().email(),
 })
 
+const INITIAL_USER_STATE: User = {id: 0, name: "", email: "", created_at: "", updated_at: ""};
+
+const useUsers = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [page, setPage] = useState(1);
+
+  const fetchUsers = () => {
+    console.log("===ユーザー一覧情報取得===")
+    fetch(`http://localhost:3000/api/v1/users?page=${page}`)
+      .then((res) => res.json())
+      .then((data) => setUsers(data.users));
+  }
+
+  useEffect(() => {
+    fetchUsers();
+  }, [page]);
+
+  return { users, page, setPage, fetchUsers };
+}
+
+const useUser = () => {
+  const [user, setUser] = useState<User>(INITIAL_USER_STATE);
+
+  const fetchUser = (id: number) => {
+    console.log("===ユーザー個別情報取得===")
+    fetch(`http://localhost:3000/api/v1/users/${id}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data.user));
+  }
+
+  return { user, setUser, fetchUser };
+}
+
 export default function Home() {
   const { setTheme } = useTheme()
-  const [users, setUsers] = useState<User[]>([]);
-  const [user, setUser] = useState<User>({id: 0, name: "", email: "", created_at: "", updated_at: ""});
-  useEffect(() => {
-    setListUsers();
-  }, []);
+  const { users, page, setPage, fetchUsers } = useUsers();
+  const { user, fetchUser } = useUser();
 
   useEffect(() => {
     form.reset({
@@ -101,27 +123,21 @@ export default function Home() {
     .then(response => response.json())
     .then(data => {
       console.log('Success:', data);
-      setListUsers();
+      fetchUsers();
     })
   }
 
-  const setListUsers = () =>{
-    console.log("===ユーザー一覧情報取得===")
-    fetch("http://localhost:3000/api/v1/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data.users));
+  const nextPage = () =>{
+    setPage(page+1);
   }
 
-  const setEditUser = (id: number) =>{
-    console.log("===ユーザー個別情報取得===")
-    fetch("http://localhost:3000/api/v1/users/"+id)
-      .then((res) => res.json())
-      .then((data) => setUser(data.user));
+  const previousPage = () =>{
+    setPage(page-1);
   }
 
 
   return (
-    <>
+    <div className="container mx-auto py-10">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon">
@@ -196,7 +212,7 @@ export default function Home() {
         <TableBody>
           {users.map((user) => {
             return (
-              <TableRow onClick={() => setEditUser(user.id)}>
+              <TableRow onClick={() => fetchUser(user.id)}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.created_at}</TableCell>
@@ -210,21 +226,18 @@ export default function Home() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          onClick={() => previousPage()}
         >
           Previous
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          onClick={() => nextPage()}
         >
           Next
         </Button>
       </div>
-
-    </>
+    </div>
   );
 }
