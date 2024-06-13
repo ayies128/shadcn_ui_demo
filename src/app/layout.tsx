@@ -32,8 +32,11 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-        ></ThemeProvider>
-        {children}
+        >
+          <div className="mx-auto" style={{width: "80%"}}>
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
